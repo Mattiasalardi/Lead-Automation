@@ -3,7 +3,7 @@ const axios = require('axios');
 const WHATSAPP_API_URL = 'https://graph.facebook.com/v18.0';
 const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
 const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
-const TEMPLATE_NAME = process.env.WHATSAPP_TEMPLATE_NAME || 'hello_world';
+const TEMPLATE_NAME = process.env.WHATSAPP_TEMPLATE_NAME || 'hello';
 
 const sendWelcomeMessage = async (phoneNumber, firstName) => {
   try {
@@ -21,18 +21,7 @@ const sendWelcomeMessage = async (phoneNumber, firstName) => {
         name: TEMPLATE_NAME,
         language: {
           code: 'it'
-        },
-        components: [
-          {
-            type: 'body',
-            parameters: [
-              {
-                type: 'text',
-                text: firstName
-              }
-            ]
-          }
-        ]
+        }
       }
     };
 
