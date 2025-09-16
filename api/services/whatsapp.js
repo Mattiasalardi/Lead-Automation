@@ -29,6 +29,18 @@ const sendWelcomeMessage = async (phoneNumber, firstName) => {
               {
                 type: 'text',
                 text: firstName
+              },
+              {
+                type: 'text',
+                text: 'Omira'
+              },
+              {
+                type: 'text',
+                text: 'marketing digitale'
+              },
+              {
+                type: 'text',
+                text: 'consultazione gratuita'
               }
             ]
           }
