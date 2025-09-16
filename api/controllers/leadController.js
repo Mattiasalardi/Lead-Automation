@@ -52,11 +52,15 @@ const submitLead = async (req, res) => {
       name: name.trim(),
       phone: normalizedPhone,
       consent: true,
-      page: page || null,
       source: source || null,
       ip: clientIp,
       created_at: new Date().toISOString()
     };
+
+    // Only add page if the column exists (for backward compatibility)
+    if (page) {
+      leadData.page = page;
+    }
 
     const { data: dbLead, error: dbError } = await supabase
       .from('leads')
