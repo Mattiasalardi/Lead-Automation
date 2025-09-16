@@ -22,7 +22,7 @@ const initTransporter = () => {
 
 const sendLeadNotification = async (leadData) => {
   try {
-    const { name, phone, source, created_at } = leadData;
+    const { name, phone, page, source, created_at } = leadData;
 
     const emailContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -31,6 +31,7 @@ const sendLeadNotification = async (leadData) => {
         <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
           <p style="margin: 10px 0;"><strong>Name:</strong> ${name}</p>
           <p style="margin: 10px 0;"><strong>Phone:</strong> ${phone}</p>
+          <p style="margin: 10px 0;"><strong>Page:</strong> ${page || 'Unknown'}</p>
           <p style="margin: 10px 0;"><strong>Source:</strong> ${source || 'Direct'}</p>
           <p style="margin: 10px 0;"><strong>Date:</strong> ${new Date(created_at).toLocaleString('it-IT')}</p>
         </div>
@@ -52,7 +53,7 @@ const sendLeadNotification = async (leadData) => {
       to: process.env.NOTIFICATION_EMAIL || 'hello@byrivon.com',
       subject: `New Lead: ${name} - ${new Date().toLocaleDateString('it-IT')}`,
       html: emailContent,
-      text: `New lead received!\n\nName: ${name}\nPhone: ${phone}\nSource: ${source || 'Direct'}\nDate: ${new Date(created_at).toLocaleString('it-IT')}`
+      text: `New lead received!\n\nName: ${name}\nPhone: ${phone}\nPage: ${page || 'Unknown'}\nSource: ${source || 'Direct'}\nDate: ${new Date(created_at).toLocaleString('it-IT')}`
     };
 
     await initTransporter().sendMail(mailOptions);

@@ -21,7 +21,7 @@ const submitLead = async (req, res) => {
       });
     }
 
-    const { name, phone, consent, source } = req.body;
+    const { name, phone, consent, source, page } = req.body;
 
     if (!consent) {
       return res.status(400).json({
@@ -52,6 +52,7 @@ const submitLead = async (req, res) => {
       name: name.trim(),
       phone: normalizedPhone,
       consent: true,
+      page: page || null,
       source: source || null,
       ip: clientIp,
       created_at: new Date().toISOString()
