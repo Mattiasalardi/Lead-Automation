@@ -1,0 +1,23 @@
+{
+  "name": "omira-lead-capture",
+  "version": "1.0.0",
+  "description": "Lead capture service for Omira marketing agency",
+  "main": "api/index.js",
+  "scripts": {
+    "dev": "node api/index.js",
+    "start": "node api/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "@supabase/supabase-js": "^2.39.0",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "libphonenumber-js": "^1.10.51",
+    "nodemailer": "^6.9.7",
+    "express-rate-limit": "^7.1.5"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}
