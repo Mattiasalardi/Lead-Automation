@@ -20,7 +20,7 @@ const sendWelcomeMessage = async (phoneNumber, firstName) => {
       template: {
         name: TEMPLATE_NAME,
         language: {
-          code: 'it'
+          code: 'en'
         },
         components: [
           {
