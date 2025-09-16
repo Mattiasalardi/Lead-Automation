@@ -49,7 +49,7 @@ const sendLeadNotification = async (leadData) => {
 
     const mailOptions = {
       from: `"Omira Lead System" <${process.env.SMTP_USER}>`,
-      to: process.env.NOTIFICATION_EMAIL || 'mattia@byrivon.com',
+      to: process.env.NOTIFICATION_EMAIL || 'hello@byrivon.com',
       subject: `New Lead: ${name} - ${new Date().toLocaleDateString('it-IT')}`,
       html: emailContent,
       text: `New lead received!\n\nName: ${name}\nPhone: ${phone}\nSource: ${source || 'Direct'}\nDate: ${new Date(created_at).toLocaleString('it-IT')}`
