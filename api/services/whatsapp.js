@@ -28,13 +28,15 @@ const sendWelcomeMessage = async (phoneNumber, firstName) => {
             parameters: [
               {
                 type: 'text',
-                text: firstName
+                text: firstName || 'Cliente'
               }
             ]
           }
         ]
       }
     };
+
+    console.log('WhatsApp API Payload:', JSON.stringify(payload, null, 2));
 
     const response = await axios.post(url, payload, {
       headers: {
