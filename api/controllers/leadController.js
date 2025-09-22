@@ -117,6 +117,8 @@ const submitLead = async (req, res) => {
         try {
           if (isValidPhoneNumber(cleanedPhone)) {
             phoneNumber = parsePhoneNumber(cleanedPhone);
+            normalizedPhone = phoneNumber.format('E.164');
+            phoneIsValid = true;
             parseAttempts.push(`Direct parse successful: ${cleanedPhone}`);
           } else {
             // Second try: Check for double country codes more aggressively
