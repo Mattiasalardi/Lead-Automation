@@ -4,6 +4,33 @@ const whatsapp = require('../services/whatsapp');
 const email = require('../services/email');
 const { validateLead } = require('../utils/validation');
 
+// Check if phone number is obviously fake (for email filtering)
+const isObviouslyFakeNumber = (phone) => {
+  const cleaned = phone.replace(/[\s\-\+]/g, '');
+
+  // Too short or too long
+  if (cleaned.length < 8 || cleaned.length > 15) return true;
+
+  // All same digit
+  if (/^(\d)\1{7,}$/.test(cleaned)) return true;
+
+  // Sequential numbers
+  if (/^(0123456789|1234567890|9876543210)/.test(cleaned)) return true;
+
+  // All zeros or ones
+  if (/^0{8,}$/.test(cleaned) || /^1{8,}$/.test(cleaned)) return true;
+
+  // Common test numbers
+  const testPatterns = [
+    /^123456/,
+    /^111111/,
+    /^000000/,
+    /^999999/
+  ];
+
+  return testPatterns.some(pattern => pattern.test(cleaned));
+};
+
 const submitLead = async (req, res) => {
   try {
     // Log all incoming requests
@@ -40,7 +67,17 @@ const submitLead = async (req, res) => {
       });
     }
 
+    // Check if phone is obviously fake - block completely if so
+    if (isObviouslyFakeNumber(phone)) {
+      console.log('Obviously fake phone number rejected:', phone);
+      return res.status(400).json({
+        success: false,
+        message: 'Please enter a valid mobile number.'
+      });
+    }
+
     let normalizedPhone;
+    let phoneIsValid = false;
     try {
       // Clean up common input errors
       let cleanedPhone = phone.trim();
@@ -100,18 +137,19 @@ const submitLead = async (req, res) => {
             if (!phoneNumber || !phoneNumber.isValid()) {
               console.log('Invalid international phone number after all attempts:', cleanedPhone);
               console.log('Parse attempts:', parseAttempts);
-              return res.status(400).json({
-                success: false,
-                message: 'Please enter a valid mobile number.'
-              });
+              // Don't reject - continue with original phone and mark as invalid
+              normalizedPhone = cleanedPhone;
+              phoneIsValid = false;
+            } else {
+              normalizedPhone = phoneNumber.format('E.164');
+              phoneIsValid = true;
             }
           }
         } catch (error) {
           console.log('Phone parsing error:', error, 'for number:', cleanedPhone);
-          return res.status(400).json({
-            success: false,
-            message: 'Please enter a valid mobile number.'
-          });
+          // Don't reject - continue with original phone and mark as invalid
+          normalizedPhone = cleanedPhone;
+          phoneIsValid = false;
         }
       } else {
         // If no + prefix, try common formats
@@ -128,20 +166,21 @@ const submitLead = async (req, res) => {
         }
 
         if (!phoneNumber.isValid()) {
-          return res.status(400).json({
-            success: false,
-            message: 'Please enter a valid mobile number with country code (e.g., +39 for Italy, +44 for UK).'
-          });
+          console.log('Phone number invalid after all attempts:', cleanedPhone);
+          normalizedPhone = cleanedPhone;
+          phoneIsValid = false;
+        } else {
+          normalizedPhone = phoneNumber.format('E.164');
+          phoneIsValid = true;
         }
+      } else {
+        normalizedPhone = phoneNumber.format('E.164');
+        phoneIsValid = true;
       }
-
-      normalizedPhone = phoneNumber.format('E.164');
     } catch (error) {
       console.error('Phone parsing error:', error);
-      return res.status(400).json({
-        success: false,
-        message: 'Please enter a valid mobile number with country code.'
-      });
+      normalizedPhone = cleanedPhone;
+      phoneIsValid = false;
     }
 
     const leadData = {
@@ -150,6 +189,7 @@ const submitLead = async (req, res) => {
       consent: true,
       source: source || null,
       ip: clientIp,
+      phone_valid: phoneIsValid,
       created_at: new Date().toISOString()
     };
 
@@ -172,24 +212,35 @@ const submitLead = async (req, res) => {
       });
     }
 
-    console.log('Lead saved successfully:', dbLead.id);
+    console.log('Lead saved successfully:', dbLead.id, 'Phone valid:', phoneIsValid);
 
-    const whatsappResult = await whatsapp.sendWelcomeMessage(
-      normalizedPhone,
-      name.split(' ')[0]
-    );
+    let whatsappResult = { success: false, error: 'Phone invalid' };
 
-    if (!whatsappResult.success) {
-      console.error('WhatsApp send failed:', whatsappResult.error);
+    // Only try WhatsApp if phone is valid
+    if (phoneIsValid) {
+      whatsappResult = await whatsapp.sendWelcomeMessage(
+        normalizedPhone,
+        name.split(' ')[0]
+      );
 
-      await supabase
-        .from('leads')
-        .update({ whatsapp_status: 'failed', whatsapp_error: whatsappResult.error })
-        .eq('id', dbLead.id);
+      if (!whatsappResult.success) {
+        console.error('WhatsApp send failed:', whatsappResult.error);
+
+        await supabase
+          .from('leads')
+          .update({ whatsapp_status: 'failed', whatsapp_error: whatsappResult.error })
+          .eq('id', dbLead.id);
+      } else {
+        await supabase
+          .from('leads')
+          .update({ whatsapp_status: 'sent', whatsapp_message_id: whatsappResult.messageId })
+          .eq('id', dbLead.id);
+      }
     } else {
+      console.log('Skipping WhatsApp - invalid phone number:', normalizedPhone);
       await supabase
         .from('leads')
-        .update({ whatsapp_status: 'sent', whatsapp_message_id: whatsappResult.messageId })
+        .update({ whatsapp_status: 'skipped', whatsapp_error: 'Invalid phone number format' })
         .eq('id', dbLead.id);
     }
 
@@ -199,17 +250,20 @@ const submitLead = async (req, res) => {
       console.error('Email notification failed:', emailError);
     }
 
-    if (!whatsappResult.success) {
-      return res.status(200).json({
-        success: true,
-        message: 'Thank you! We received your information but couldn\'t send the WhatsApp message. We\'ll contact you soon.',
-        warning: true
-      });
+    // Always return success since we saved the lead and sent email
+    let responseMessage;
+    if (whatsappResult.success) {
+      responseMessage = 'Thank you! Check your WhatsApp for our welcome message.';
+    } else if (phoneIsValid) {
+      responseMessage = 'Thank you! We received your information but couldn\'t send the WhatsApp message. We\'ll contact you soon.';
+    } else {
+      responseMessage = 'Thank you! We received your information. We\'ll contact you soon to verify your phone number.';
     }
 
     res.json({
       success: true,
-      message: 'Thank you! Check your WhatsApp for our welcome message.'
+      message: responseMessage,
+      warning: !whatsappResult.success
     });
 
   } catch (error) {

@@ -7,6 +7,7 @@ CREATE TABLE leads (
     page VARCHAR(50),
     source TEXT,
     ip VARCHAR(45),
+    phone_valid BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     whatsapp_status VARCHAR(20) DEFAULT 'pending',
     whatsapp_message_id VARCHAR(100),
@@ -18,6 +19,7 @@ CREATE INDEX idx_leads_phone ON leads(phone);
 CREATE INDEX idx_leads_created_at ON leads(created_at DESC);
 CREATE INDEX idx_leads_whatsapp_status ON leads(whatsapp_status);
 CREATE INDEX idx_leads_page ON leads(page);
+CREATE INDEX idx_leads_phone_valid ON leads(phone_valid);
 
 -- Add a constraint to ensure consent is true for processing
 ALTER TABLE leads ADD CONSTRAINT check_consent CHECK (consent = true);
