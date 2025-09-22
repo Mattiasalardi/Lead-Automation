@@ -11,13 +11,13 @@ const sendWelcomeMessage = async (phoneNumber, firstName) => {
       throw new Error('WATI credentials not configured');
     }
 
-    const url = `${WATI_API_URL}/api/v1/sendTemplateMessage`;
+    // Phone number goes in URL as query parameter
+    const url = `${WATI_API_URL}/api/v1/sendTemplateMessage?whatsappNumber=${phoneNumber.replace('+', '')}`;
 
+    // Body only contains template info and parameters
     const payload = {
-      phone_number: phoneNumber.replace('+', ''),  // WATI uses phone_number with underscore
       template_name: TEMPLATE_NAME,
       broadcast_name: 'lead_welcome',
-      language_code: 'it',
       parameters: [
         {
           name: 'name',
@@ -26,6 +26,7 @@ const sendWelcomeMessage = async (phoneNumber, firstName) => {
       ]
     };
 
+    console.log('WATI API URL:', url);
     console.log('WATI API Payload:', JSON.stringify(payload, null, 2));
 
     const response = await axios.post(url, payload, {
