@@ -14,7 +14,7 @@ const sendWelcomeMessage = async (phoneNumber, firstName) => {
     const url = `${WATI_API_URL}/api/v1/sendTemplateMessage`;
 
     const payload = {
-      whatsappNumber: phoneNumber.replace('+', ''),  // Remove + sign for WATI
+      phone_number: phoneNumber.replace('+', ''),  // WATI uses phone_number with underscore
       template_name: TEMPLATE_NAME,
       broadcast_name: 'lead_welcome',
       language_code: 'it',
