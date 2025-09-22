@@ -15,7 +15,18 @@ app.set('trust proxy', 1);
 const limiter = rateLimit({
   windowMs: 1 * 60 * 1000,
   max: 10,
-  message: 'Too many requests from this IP, please try again later.'
+  message: 'Too many requests from this IP, please try again later.',
+  handler: (req, res) => {
+    console.error('RATE LIMIT HIT:', {
+      ip: req.ip,
+      url: req.url,
+      timestamp: new Date().toISOString()
+    });
+    res.status(429).json({
+      success: false,
+      message: 'Too many requests from this IP, please try again later.'
+    });
+  }
 });
 
 const corsOptions = {

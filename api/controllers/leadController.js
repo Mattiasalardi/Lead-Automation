@@ -6,6 +6,14 @@ const { validateLead } = require('../utils/validation');
 
 const submitLead = async (req, res) => {
   try {
+    // Log all incoming requests
+    console.log('New lead submission:', {
+      body: req.body,
+      headers: req.headers.origin || req.headers.referer,
+      ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+      timestamp: new Date().toISOString()
+    });
+
     const clientIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
     if (req.body.honeypot) {
@@ -15,6 +23,7 @@ const submitLead = async (req, res) => {
 
     const validationError = validateLead(req.body);
     if (validationError) {
+      console.log('Validation failed:', validationError, 'for data:', req.body);
       return res.status(400).json({
         success: false,
         message: validationError
@@ -24,6 +33,7 @@ const submitLead = async (req, res) => {
     const { name, phone, consent, source, page } = req.body;
 
     if (!consent) {
+      console.log('Consent not provided for:', name, phone);
       return res.status(400).json({
         success: false,
         message: 'Consent is required to process your information.'
@@ -38,6 +48,7 @@ const submitLead = async (req, res) => {
       // If number starts with +, parse as international
       if (phone.startsWith('+')) {
         if (!isValidPhoneNumber(phone)) {
+          console.log('Invalid international phone number:', phone);
           return res.status(400).json({
             success: false,
             message: 'Please enter a valid mobile number.'
