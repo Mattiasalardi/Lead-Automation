@@ -1,63 +1,55 @@
 const axios = require('axios');
 
-const WHATSAPP_API_URL = 'https://graph.facebook.com/v18.0';
-const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
-const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
-const TEMPLATE_NAME = process.env.WHATSAPP_TEMPLATE_NAME || 'ricezione_dati';
+// WATI Configuration
+const WATI_API_URL = process.env.WATI_API_URL || 'https://eu-api.wati.io/1111595';
+const WATI_ACCESS_TOKEN = process.env.WATI_ACCESS_TOKEN;
+const TEMPLATE_NAME = process.env.WHATSAPP_TEMPLATE_NAME || 'conferma_ricezione_dati';
 
 const sendWelcomeMessage = async (phoneNumber, firstName) => {
   try {
-    if (!PHONE_NUMBER_ID || !ACCESS_TOKEN) {
-      throw new Error('WhatsApp credentials not configured');
+    if (!WATI_ACCESS_TOKEN) {
+      throw new Error('WATI credentials not configured');
     }
 
-    const url = `${WHATSAPP_API_URL}/${PHONE_NUMBER_ID}/messages`;
+    const url = `${WATI_API_URL}/api/v1/sendTemplateMessage`;
 
     const payload = {
-      messaging_product: 'whatsapp',
-      to: phoneNumber.replace('+', ''),
-      type: 'template',
-      template: {
-        name: TEMPLATE_NAME,
-        language: {
-          code: 'it'
-        },
-        components: [
-          {
-            type: 'body',
-            parameters: [
-              {
-                type: 'text',
-                text: firstName || 'Cliente'
-              }
-            ]
-          }
-        ]
-      }
+      whatsAppNumber: phoneNumber,
+      template_name: TEMPLATE_NAME,
+      broadcast_name: 'lead_welcome',
+      language_code: 'it',
+      parameters: [
+        {
+          name: 'name',
+          value: firstName || 'Cliente'
+        }
+      ]
     };
 
-    console.log('WhatsApp API Payload:', JSON.stringify(payload, null, 2));
+    console.log('WATI API Payload:', JSON.stringify(payload, null, 2));
 
     const response = await axios.post(url, payload, {
       headers: {
-        'Authorization': `Bearer ${ACCESS_TOKEN}`,
+        'Authorization': WATI_ACCESS_TOKEN, // Token already includes "Bearer"
         'Content-Type': 'application/json'
       }
     });
 
-    console.log('WhatsApp message sent successfully:', response.data);
+    console.log('WhatsApp message sent successfully via WATI:', response.data);
 
     return {
       success: true,
-      messageId: response.data.messages[0].id
+      messageId: response.data.messageId || response.data.id || response.data.result
     };
 
   } catch (error) {
-    console.error('WhatsApp API Error:', error.response?.data || error.message);
+    console.error('WATI API Error:', error.response?.data || error.message);
 
     let errorMessage = 'Failed to send WhatsApp message';
-    if (error.response?.data?.error?.message) {
-      errorMessage = error.response.data.error.message;
+    if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.response?.data?.result) {
+      errorMessage = error.response.data.result;
     }
 
     return {
