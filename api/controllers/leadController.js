@@ -42,31 +42,43 @@ const submitLead = async (req, res) => {
 
     let normalizedPhone;
     try {
+      // Clean up common input errors
+      let cleanedPhone = phone.trim();
+
+      // Fix common double country code issue (e.g., +39393... should be +393...)
+      if (cleanedPhone.startsWith('+3939')) {
+        cleanedPhone = '+39' + cleanedPhone.substring(5);
+        console.log('Fixed double country code: ', phone, '->', cleanedPhone);
+      } else if (cleanedPhone.startsWith('+4444')) {
+        cleanedPhone = '+44' + cleanedPhone.substring(5);
+        console.log('Fixed double country code: ', phone, '->', cleanedPhone);
+      }
+
       // Try to parse without assuming country
       let phoneNumber;
 
       // If number starts with +, parse as international
-      if (phone.startsWith('+')) {
-        if (!isValidPhoneNumber(phone)) {
-          console.log('Invalid international phone number:', phone);
+      if (cleanedPhone.startsWith('+')) {
+        if (!isValidPhoneNumber(cleanedPhone)) {
+          console.log('Invalid international phone number:', cleanedPhone);
           return res.status(400).json({
             success: false,
             message: 'Please enter a valid mobile number.'
           });
         }
-        phoneNumber = parsePhoneNumber(phone);
+        phoneNumber = parsePhoneNumber(cleanedPhone);
       } else {
         // If no + prefix, try common formats
         // First try as-is (might have country code without +)
         try {
-          phoneNumber = parsePhoneNumber('+' + phone);
+          phoneNumber = parsePhoneNumber('+' + cleanedPhone);
           if (!phoneNumber.isValid()) {
             // If that fails, assume Italian number
-            phoneNumber = parsePhoneNumber(phone, 'IT');
+            phoneNumber = parsePhoneNumber(cleanedPhone, 'IT');
           }
         } catch {
           // Last resort: assume Italian
-          phoneNumber = parsePhoneNumber(phone, 'IT');
+          phoneNumber = parsePhoneNumber(cleanedPhone, 'IT');
         }
 
         if (!phoneNumber.isValid()) {
