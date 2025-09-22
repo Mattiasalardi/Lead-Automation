@@ -45,28 +45,74 @@ const submitLead = async (req, res) => {
       // Clean up common input errors
       let cleanedPhone = phone.trim();
 
-      // Fix common double country code issue (e.g., +39393... should be +393...)
+      // Smart detection of double country codes
+      // Italian numbers: mobile starts with 3, so +3939 followed by non-3 might be double
+      // But +3933 is valid (starts with 33), +3932 is valid (starts with 32), etc.
       if (cleanedPhone.startsWith('+3939')) {
-        cleanedPhone = '+39' + cleanedPhone.substring(5);
-        console.log('Fixed double country code: ', phone, '->', cleanedPhone);
-      } else if (cleanedPhone.startsWith('+4444')) {
-        cleanedPhone = '+44' + cleanedPhone.substring(5);
-        console.log('Fixed double country code: ', phone, '->', cleanedPhone);
+        // Check if what follows looks like a mobile number (starts with 3)
+        const afterCode = cleanedPhone.substring(5);
+        if (afterCode.startsWith('3')) {
+          // +39393... is likely +39 + 393... (double country code)
+          cleanedPhone = '+39' + afterCode;
+          console.log('Fixed Italian double country code:', phone, '->', cleanedPhone);
+        }
+        // Otherwise +3939xxx might be valid if xxx doesn't start with 3
       }
 
-      // Try to parse without assuming country
+      // UK double country code detection
+      // UK mobiles start with 7, so +4444 followed by 7 is likely double
+      if (cleanedPhone.startsWith('+4444')) {
+        const afterCode = cleanedPhone.substring(5);
+        if (afterCode.startsWith('7')) {
+          // +44447... is likely +44 + 447... (double country code)
+          cleanedPhone = '+44' + afterCode;
+          console.log('Fixed UK double country code:', phone, '->', cleanedPhone);
+        }
+      }
+
+      // Alternative approach: Try to parse, if it fails, try removing potential double code
       let phoneNumber;
+      let parseAttempts = [];
 
       // If number starts with +, parse as international
       if (cleanedPhone.startsWith('+')) {
-        if (!isValidPhoneNumber(cleanedPhone)) {
-          console.log('Invalid international phone number:', cleanedPhone);
+        // First try: parse as-is
+        try {
+          if (isValidPhoneNumber(cleanedPhone)) {
+            phoneNumber = parsePhoneNumber(cleanedPhone);
+            parseAttempts.push(`Direct parse successful: ${cleanedPhone}`);
+          } else {
+            // Second try: Check for double country codes more aggressively
+            // For +39 numbers that don't parse
+            if (cleanedPhone.startsWith('+39') && cleanedPhone.length > 13) {
+              const withoutPlus = cleanedPhone.substring(1); // Remove +
+              if (withoutPlus.startsWith('3939')) {
+                // Definitely double: 39 + 39...
+                const fixed = '+39' + withoutPlus.substring(2);
+                if (isValidPhoneNumber(fixed)) {
+                  phoneNumber = parsePhoneNumber(fixed);
+                  cleanedPhone = fixed;
+                  console.log('Fixed double country code on second attempt:', phone, '->', fixed);
+                }
+              }
+            }
+
+            if (!phoneNumber || !phoneNumber.isValid()) {
+              console.log('Invalid international phone number after all attempts:', cleanedPhone);
+              console.log('Parse attempts:', parseAttempts);
+              return res.status(400).json({
+                success: false,
+                message: 'Please enter a valid mobile number.'
+              });
+            }
+          }
+        } catch (error) {
+          console.log('Phone parsing error:', error, 'for number:', cleanedPhone);
           return res.status(400).json({
             success: false,
             message: 'Please enter a valid mobile number.'
           });
         }
-        phoneNumber = parsePhoneNumber(cleanedPhone);
       } else {
         // If no + prefix, try common formats
         // First try as-is (might have country code without +)
