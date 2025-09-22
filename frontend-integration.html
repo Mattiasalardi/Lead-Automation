@@ -88,7 +88,10 @@
 
         <div class="form-group">
             <label for="phone">Numero di Telefono *</label>
-            <input type="tel" id="phone" name="phone" required placeholder="+39 xxx xxx xxxx o +44 xxx xxx xxxx">
+            <input type="tel" id="phone" name="phone" required
+                   pattern="[\+]?[0-9]{10,15}"
+                   title="Enter a valid phone number with country code (e.g., +39 or +44)"
+                   placeholder="+39 xxx xxx xxxx o +44 xxx xxx xxxx">
         </div>
 
         <!-- Honeypot field (hidden) -->
@@ -119,6 +122,49 @@
         // Production API URL - update this when you deploy to Vercel
         const API_URL = 'http://localhost:3001/api/submit-lead';
         // For production: const API_URL = 'https://your-vercel-app.vercel.app/api/submit-lead';
+
+        // Validate phone number format
+        function validatePhone(phone) {
+            // Remove spaces and dashes
+            const cleaned = phone.replace(/[\s-]/g, '');
+
+            // Check if it matches international format
+            // Must start with + or digit, be 10-15 digits total
+            const phoneRegex = /^[\+]?[0-9]{10,15}$/;
+
+            if (!phoneRegex.test(cleaned)) {
+                return false;
+            }
+
+            // Check for obviously fake patterns
+            const fakePatterns = [
+                /^(\d)\1{9,}$/,  // All same digit (e.g., 1111111111)
+                /^1234567890$/,  // Sequential
+                /^0{10,}$/       // All zeros
+            ];
+
+            for (let pattern of fakePatterns) {
+                if (pattern.test(cleaned.replace('+', ''))) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        // Add real-time validation
+        document.getElementById('phone').addEventListener('blur', function() {
+            const phoneInput = this;
+            const phone = phoneInput.value.trim();
+
+            if (phone && !validatePhone(phone)) {
+                phoneInput.setCustomValidity('Please enter a valid phone number with country code (e.g., +39 for Italy, +44 for UK)');
+                phoneInput.style.borderColor = '#f00';
+            } else {
+                phoneInput.setCustomValidity('');
+                phoneInput.style.borderColor = '#ddd';
+            }
+        });
 
         // Get UTM parameters from URL
         function getUTMParams() {
@@ -154,6 +200,16 @@
                 honeypot: document.getElementById('website').value,
                 source: getUTMParams()
             };
+
+            // Validate phone before submitting
+            if (!validatePhone(formData.phone)) {
+                messageDiv.textContent = 'Please enter a valid phone number with country code';
+                messageDiv.className = 'message error';
+                messageDiv.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Invia Richiesta';
+                return;
+            }
 
             try {
                 const response = await fetch(API_URL, {
