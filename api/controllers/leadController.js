@@ -173,9 +173,6 @@ const submitLead = async (req, res) => {
           normalizedPhone = phoneNumber.format('E.164');
           phoneIsValid = true;
         }
-      } else {
-        normalizedPhone = phoneNumber.format('E.164');
-        phoneIsValid = true;
       }
     } catch (error) {
       console.error('Phone parsing error:', error);
