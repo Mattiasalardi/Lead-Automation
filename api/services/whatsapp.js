@@ -14,7 +14,7 @@ const sendWelcomeMessage = async (phoneNumber, firstName) => {
     const url = `${WATI_API_URL}/api/v1/sendTemplateMessage`;
 
     const payload = {
-      whatsAppNumber: phoneNumber,
+      whatsappNumber: phoneNumber,  // Changed from whatsAppNumber to whatsappNumber
       template_name: TEMPLATE_NAME,
       broadcast_name: 'lead_welcome',
       language_code: 'it',
