@@ -32,19 +32,46 @@ const submitLead = async (req, res) => {
 
     let normalizedPhone;
     try {
-      if (!isValidPhoneNumber(phone, 'IT')) {
-        return res.status(400).json({
-          success: false,
-          message: 'Please enter a valid mobile number.'
-        });
+      // Try to parse without assuming country
+      let phoneNumber;
+
+      // If number starts with +, parse as international
+      if (phone.startsWith('+')) {
+        if (!isValidPhoneNumber(phone)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Please enter a valid mobile number.'
+          });
+        }
+        phoneNumber = parsePhoneNumber(phone);
+      } else {
+        // If no + prefix, try common formats
+        // First try as-is (might have country code without +)
+        try {
+          phoneNumber = parsePhoneNumber('+' + phone);
+          if (!phoneNumber.isValid()) {
+            // If that fails, assume Italian number
+            phoneNumber = parsePhoneNumber(phone, 'IT');
+          }
+        } catch {
+          // Last resort: assume Italian
+          phoneNumber = parsePhoneNumber(phone, 'IT');
+        }
+
+        if (!phoneNumber.isValid()) {
+          return res.status(400).json({
+            success: false,
+            message: 'Please enter a valid mobile number with country code (e.g., +39 for Italy, +44 for UK).'
+          });
+        }
       }
-      const phoneNumber = parsePhoneNumber(phone, 'IT');
+
       normalizedPhone = phoneNumber.format('E.164');
     } catch (error) {
       console.error('Phone parsing error:', error);
       return res.status(400).json({
         success: false,
-        message: 'Please enter a valid mobile number.'
+        message: 'Please enter a valid mobile number with country code.'
       });
     }
 
