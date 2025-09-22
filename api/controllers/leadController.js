@@ -186,7 +186,6 @@ const submitLead = async (req, res) => {
       consent: true,
       source: source || null,
       ip: clientIp,
-      phone_valid: phoneIsValid,
       created_at: new Date().toISOString()
     };
 
