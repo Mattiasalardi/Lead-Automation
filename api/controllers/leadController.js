@@ -76,7 +76,7 @@ const submitLead = async (req, res) => {
       });
     }
 
-    let normalizedPhone;
+    let normalizedPhone = phone; // Initialize with original phone
     let phoneIsValid = false;
     try {
       // Clean up common input errors
